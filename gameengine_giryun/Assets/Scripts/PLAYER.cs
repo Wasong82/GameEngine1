@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class PlayerController : MonoBehaviour
+public class PLAYER : MonoBehaviour
 {
     [Header("이동 설정")]
     public float moveSpeed = 5.0f;
@@ -11,6 +11,7 @@ public class PlayerController : MonoBehaviour
     private Animator animator; // Animator 컴포넌트 가져오기
     private Rigidbody2D rb; // 캐릭터 물리(중력, 속도)
     private bool isGrounded = false; // 캐릭터가 땅 위에 서있는가?
+    private int score = 0;  // 코인 먹으면 점수증가
 
     // 리스폰용 시작 위치
     private Vector3 startPosition;
@@ -41,42 +42,22 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         // 이동 벡터 계산 -> 애니메이션 적용
-        Vector3 movement = Vector3.zero;
-        
-        if (Input.GetKey(KeyCode.A))
+        float moveX = Input.GetAxisRaw("Horizontal"); // A,D 입력
+
+        rb.velocity = new Vector2(moveX * moveSpeed, rb.velocity.y);
+
+        // 방향 반전
+        if (moveX != 0)
         {
-            movement += Vector3.left;
+            GetComponent<SpriteRenderer>().flipX = moveX < 0;
         }
-    
-        if (Input.GetKey(KeyCode.D))
-        {
-            movement += Vector3.right;
-        }
-        
-        // 실제 이동 적용
-        if (movement != Vector3.zero)
-        {
-            transform.Translate(movement * moveSpeed * Time.deltaTime);
-        }
-        
-        // 속도 계산: 이동 중이면 moveSpeed, 아니면 0
-        float currentSpeed = movement != Vector3.zero ? moveSpeed : 0f;
-        
-        // Animator에 속도 전달
+
+        // 애니메이터에 속도 전달 (절댓값으로)
         if (animator != null)
         {
-            animator.SetFloat("Speed", currentSpeed);
-            Debug.Log("Current Speed: " + currentSpeed);
+            animator.SetFloat("Speed", Mathf.Abs(moveX));
         }
 
-        // 좌우 이동
-        float moveX = 0f;
-        if (Input.GetKey(KeyCode.A)) moveX = -1f;
-        if (Input.GetKey(KeyCode.D)) moveX = 1f;
-
-        rb.linearVelocity = new Vector2(moveX * moveSpeed, rb.linearVelocity.y);
-
-        // 땅에 닿아있을 때, 스페이스바 누르면 -> 점프
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
@@ -116,5 +97,14 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-
+    // 아이템 수집 감지 (Trigger)
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Coin"))
+        {
+            score++;  // 점수 증가
+            Debug.Log("코인 획득! 현재 점수: " + score);
+            Destroy(other.gameObject);  // 코인 제거
+        }
+    }
 }
